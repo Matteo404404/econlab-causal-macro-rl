@@ -1,0 +1,1 @@
+"""Macro model transition logic."""
