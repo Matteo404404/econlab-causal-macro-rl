@@ -1,0 +1,3 @@
+policy,n_episodes,mean_reward,std_reward,p5_reward,p95_reward,inflation_rmse,output_gap_rmse,mean_crisis_periods,crisis_episode_frac,peak_leverage,peak_spread
+Taylor Rule,50,-0.2943,0.0129,-0.3181,-0.2743,0.0037,0.00824,0.0,0.0,9.83,0.0453
+Random,50,-0.4685,0.033,-0.5256,-0.4065,0.01493,0.02355,0.0,0.0,9.81,0.054
