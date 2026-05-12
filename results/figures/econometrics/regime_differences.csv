@@ -1,0 +1,6 @@
+outcome,policy,baseline,coef,std_err,p_value,n_obs,significant_90
+inflation,PPO,Taylor Rule,0.009122,6.8e-05,0.0,24000,True
+output_gap,PPO,Taylor Rule,0.012409,0.000144,0.0,24000,True
+credit_spread,PPO,Taylor Rule,-0.004804,0.000258,0.0,24000,True
+default_rate,PPO,Taylor Rule,-0.000871,0.000161,0.0,24000,True
+bank_leverage,PPO,Taylor Rule,0.144117,0.006955,0.0,24000,True

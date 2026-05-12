@@ -6,24 +6,19 @@ import numpy as np
 
 from econlab.core.parameters import ModelParameters
 from econlab.core.state import MacroState
+from econlab.model.shocks import ShockRealization
 
 
 @dataclass(slots=True)
 class MacroModel:
     """
-    Stylized macro-finance transition model.
-
-    The goal of this first version is not realism at paper level.
-    The goal is to create stable, interpretable dynamics that are good enough
-    to support baseline policies and RL training later.
+    Stylized macro-finance transition model with structured shock support.
     """
 
     params: ModelParameters
 
     def initial_state(self, rng: np.random.Generator) -> MacroState:
-        """Sample a reasonable initial state near steady state."""
         p = self.params
-
         return MacroState(
             inflation=float(rng.normal(p.inflation_target, 0.002)),
             output_gap=float(rng.normal(0.0, 0.01)),
@@ -41,28 +36,30 @@ class MacroModel:
         state: MacroState,
         policy_rate_next: float,
         rng: np.random.Generator,
+        shock: ShockRealization | None = None,
     ) -> MacroState:
         """
         Advance the model by one period.
-
-        The central bank chooses the next policy rate directly in this first
-        version. Later we can switch to delta-rate actions if we prefer.
+        Optional structured shock is added on top of white-noise innovations.
         """
-        p = self.params
+        from econlab.model.shocks import NO_SHOCK
+        shock = shock or NO_SHOCK
 
+        p = self.params
         policy_rate_next = float(
             np.clip(policy_rate_next, p.min_policy_rate, p.max_policy_rate)
         )
         policy_gap = policy_rate_next - p.neutral_rate
 
-        inflation_shock = rng.normal(0.0, p.sigma_inflation)
-        output_shock = rng.normal(0.0, p.sigma_output)
+        # White noise innovations
+        inflation_shock = rng.normal(0.0, p.sigma_inflation) + shock.inflation_add
+        output_shock = rng.normal(0.0, p.sigma_output) + shock.output_add
         unemployment_shock = rng.normal(0.0, p.sigma_unemployment)
-        credit_shock = rng.normal(0.0, p.sigma_credit)
-        spread_shock = rng.normal(0.0, p.sigma_spread)
-        leverage_shock = rng.normal(0.0, p.sigma_leverage)
-        default_shock = rng.normal(0.0, p.sigma_default)
-        asset_shock = rng.normal(0.0, p.sigma_asset)
+        credit_shock = rng.normal(0.0, p.sigma_credit) + shock.credit_add
+        spread_shock = rng.normal(0.0, p.sigma_spread) + shock.spread_add
+        leverage_shock = rng.normal(0.0, p.sigma_leverage) + shock.leverage_add
+        default_shock = rng.normal(0.0, p.sigma_default) + shock.default_add
+        asset_shock = rng.normal(0.0, p.sigma_asset) + shock.asset_add
 
         output_gap_next = (
             p.output_gap_persistence * state.output_gap
@@ -127,30 +124,24 @@ class MacroModel:
             + leverage_shock
         )
 
-        unemployment_next = float(
-            np.clip(unemployment_next, p.min_unemployment, p.max_unemployment)
-        )
-        default_rate_next = float(
-            np.clip(default_rate_next, p.min_default_rate, p.max_default_rate)
-        )
-        credit_spread_next = float(
-            np.clip(credit_spread_next, p.min_credit_spread, p.max_credit_spread)
-        )
-        bank_leverage_next = float(
-            np.clip(bank_leverage_next, p.min_bank_leverage, p.max_bank_leverage)
-        )
-        asset_price_gap_next = float(
-            np.clip(asset_price_gap_next, p.min_asset_gap, p.max_asset_gap)
-        )
-
         return MacroState(
-            inflation=float(inflation_next),
-            output_gap=float(output_gap_next),
-            unemployment=unemployment_next,
-            credit_growth=float(credit_growth_next),
-            credit_spread=credit_spread_next,
-            bank_leverage=bank_leverage_next,
-            default_rate=default_rate_next,
-            asset_price_gap=asset_price_gap_next,
+            inflation=float(np.clip(inflation_next, -0.10, 0.30)),
+            output_gap=float(np.clip(output_gap_next, -1.0, 1.0)),
+            unemployment=float(
+                np.clip(unemployment_next, p.min_unemployment, p.max_unemployment)
+            ),
+            credit_growth=float(np.clip(credit_growth_next, -0.20, 0.30)),
+            credit_spread=float(
+                np.clip(credit_spread_next, p.min_credit_spread, p.max_credit_spread)
+            ),
+            bank_leverage=float(
+                np.clip(bank_leverage_next, p.min_bank_leverage, p.max_bank_leverage)
+            ),
+            default_rate=float(
+                np.clip(default_rate_next, p.min_default_rate, p.max_default_rate)
+            ),
+            asset_price_gap=float(
+                np.clip(asset_price_gap_next, p.min_asset_gap, p.max_asset_gap)
+            ),
             policy_rate=policy_rate_next,
         )

@@ -12,3 +12,6 @@ build/
 .idea/
 .vscode/
 *.pdf
+data/
+*.zip
+*.npz

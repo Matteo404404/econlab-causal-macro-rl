@@ -1,0 +1,1 @@
+"""Econometrics layer — local projections, VAR, regime analysis."""
